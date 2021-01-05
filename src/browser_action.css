@@ -275,6 +275,20 @@ Otherwise there would be a small black line. */
   white-space: nowrap;
 }
 
+.event-res {
+  font-size: 9pt;
+  margin: 6px;
+  font-weight: bold;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  float: left;
+}
+
+.event:first {
+  margin-left: 0 
+}
+
 .declined {
   text-decoration: line-through;
   color: #999;

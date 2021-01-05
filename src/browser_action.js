@@ -410,6 +410,7 @@ browseraction.showEventsFromFeed_ = function(events) {
   }
 
   for (var i = 0; i < events.length; i++) {
+    console.log(events[i])
     var event = events[i];
     var start = utils.fromIso8601(event.start);
     var end = utils.fromIso8601(event.end);
@@ -520,10 +521,22 @@ browseraction.createEventDiv_ = function(event) {
   }
 
   var eventTitle = $('<div>').addClass('event-title').text(event.title);
+  var response = event.responseStatus === "accepted" ? "参加" : "";
+  if (event.responseStatus === "accepted" && event.comment) {
+    ["リモート", "remote"].forEach(k => {
+      if(event.comment.indexOf(k) >= 0) {
+        response = "リモート参加"
+      }
+    })
+  }
+  var eventRes = $('<div>').addClass('event-res').text("出欠: " + response)
+  var eventComment = $('<div>').addClass('event-res').text("メモ: " + (event.comment || ""))
   if (event.responseStatus == constants.EVENT_STATUS_DECLINED) {
     eventTitle.addClass('declined');
   }
   eventTitle.appendTo(eventDetails);
+  eventRes.appendTo(eventDetails);
+  eventComment.appendTo(eventDetails);
 
   if (event.location) {
     var url = event.location.match(/^https?:\/\//) ?

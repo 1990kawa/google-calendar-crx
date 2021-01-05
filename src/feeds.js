@@ -351,12 +351,14 @@ feeds.fetchEventsRecursively_ = function(feed, callback, authToken, days, fromDa
           var end = utils.fromIso8601(eventEntry.end.dateTime || eventEntry.end.date);
 
           var responseStatus = '';
+          var comment = '';
           if (eventEntry.attendees) {
             for (var attendeeId in eventEntry.attendees) {
               var attendee = eventEntry.attendees[attendeeId];
               if (attendee.self) {
                 // Of all attendees, only look at the entry for this user (self).
                 responseStatus = attendee.responseStatus;
+                comment = attendee.comment;
                 break;
               }
             }
@@ -379,7 +381,8 @@ feeds.fetchEventsRecursively_ = function(feed, callback, authToken, days, fromDa
             hangout_url: eventEntry.hangoutLink,
             attachments: eventEntry.attachments,
             gcal_url: eventEntry.htmlLink,
-            responseStatus: responseStatus
+            responseStatus: responseStatus,
+            comment: comment
           });
         }
         callback(events);
