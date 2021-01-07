@@ -1,103 +1,15 @@
-// Copyright 2012 and onwards Google Inc.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-/* globals background, constants, options, utils */
-
-
-/**
- * @fileoverview Retrieves and parses a calendar feed from the server.
- * @author manas@google.com (Manas Tungare)
- */
-
-/**
- * The Calendar Feed Parser namespace.
- * @namespace
- */
 var feeds = {};
 
-
-/**
- * @type {string}
- * @const
- * @private
- */
 feeds.SETTINGS_API_URL_ = 'https://www.googleapis.com/calendar/v3/users/me/settings';
-
-/**
- * URL of the feed that lists all calendars for the current user.
- * @type {string}
- * @const
- * @private
- */
 feeds.CALENDAR_LIST_API_URL_ = 'https://www.googleapis.com/calendar/v3/users/me/calendarList';
-
-/**
- * URL of the feed that lists all calendars for the current user.
- * @type {string}
- * @const
- * @private
- */
 feeds.CALENDAR_EVENTS_API_URL_ =
     'https://www.googleapis.com/calendar/v3/calendars/{calendarId}/events?';
 
-/**
- * The number of days of events to show in the list. If there are no events detected within the
- * next N days, then follow-up requests will be made. This number is intentionally slightly larger
- * than 0.5 * MAX_DAYS_IN_AGENDA_ so only a maximum of two requests will ever be made per fetch.
- * @type {number}
- * @const
- * @private
- */
 feeds.DAYS_IN_AGENDA_ = 16;
-
-/**
- * When the interval in DAYS_IN_AGENDA_ has no events, keep looking forward until this number is
- * reached. This should not be significantly larger than DAYS_IN_AGENDA_, otherwise the number of
- * API requests per fetch period causes the extension to hit API quota limits.
- * @type {number}
- * @const
- * @private
- */
 feeds.MAX_DAYS_IN_AGENDA_ = 31;
-
-/**
- * All events from visible calendars obtained during the last fetch.
- * @type {Array.<Object>}
- */
 feeds.events = [];
-
-/**
- * The event or events that will occur in the immediate future. If this contains
- * more than one event, then all those events must begin at the exact same time
- * and there should be no other event between now and the start time of all of
- * these events.
- * @type {Array.<Object>}
- */
 feeds.nextEvents = [];
-
-/**
- * The time at which fresh data was last fetched from the server.
- * @type {Date}
- */
 feeds.lastFetchedAt = null;
-
-/**
- * Shows a UI to request an OAuth token. This should only be called in response
- * to user interaction to avoid confusing the user. Since the resulting window
- * is shown with no standard window decorations, it can end up below all other
- * windows, with no way to detect that it was shown, and no way to reposition
- * it either.
- */
 feeds.requestInteractiveAuthToken = function() {
   background.log('feeds.requestInteractiveAuthToken()');
   chrome.identity.getAuthToken({'interactive': true}, function(accessToken) {
@@ -110,47 +22,6 @@ feeds.requestInteractiveAuthToken = function() {
   });
 };
 
-
-/**
- * Fetches user's server-side settings and writes them to local {@code Options}.
- */
-feeds.fetchSettings = function() {
-  background.log('feeds.fetchSettings()');
-
-  chrome.identity.getAuthToken({'interactive': false}, function(authToken) {
-    if (chrome.runtime.lastError) {
-      background.log('getAuthToken', chrome.runtime.lastError.message);
-      return;
-    }
-
-    $.ajax(feeds.SETTINGS_API_URL_, {
-      headers: {'Authorization': 'Bearer ' + authToken},
-      success: function(settings) {
-        for (var settingId in settings.items) {
-          var setting = settings.items[settingId];
-          try {
-            // The API is silly, it returns booleans and ints as strings ("false", "6").
-            setting.value = JSON.parse(setting.value);
-          } catch (e) {
-            // Just use it as a string if unable to parse as JSON.
-          }
-          options.set(setting.id, setting.value);
-        }
-        background.log('Remote settings saved to local storage.', settings.items);
-      },
-      error: function(response) {
-        background.log('Fetch Error (Settings)', response.statusText);
-      }
-    });
-  });
-};
-
-
-/**
- * Sends a request to fetch the list of calendars for the currently-logged in
- * user. When calendars are received, it automatically initiates a request
- * for events from those calendars.
- */
 feeds.fetchCalendars = function() {
   background.log('feeds.fetchCalendars()');
   chrome.extension.sendMessage({method: 'sync-icon.spinning.start'});
@@ -174,15 +45,6 @@ feeds.fetchCalendars = function() {
           var calendars = {};
           for (var i = 0; i < data.items.length; i++) {
             var calendar = data.items[i];
-            // The list of calendars from the server must be merged with the list of
-            // stored calendars. The ID is the key for each calendar feed. The title
-            // and color provided by the server override whatever is stored locally
-            // (in case there were changes made through the Web UI). Whether the
-            // calendar is shown in the browser action popup is determined by a
-            // user preference set set locally (via Options) and overrides the
-            // defaults provided by the server. If no such preference exists, then
-            // a calendar is shown if it's selected and not hidden.
-
             var serverCalendarID = calendar.id;
             var storedCalendar = storedCalendars[serverCalendarID] || {};
 
@@ -225,12 +87,6 @@ feeds.fetchCalendars = function() {
   });
 };
 
-/**
- * Sends a request to the server and retrieves a short list of events occurring
- * in the near future. This only fetches the events and sorts them, it does not
- * populate the global nextEvents list, or update the badge. After events are
- * fetched, it initiates a request to update the UI.
- */
 feeds.fetchEvents = function() {
   background.log('feeds.fetchEvents()');
   chrome.extension.sendMessage({method: 'sync-icon.spinning.start'});
@@ -245,7 +101,6 @@ feeds.fetchEvents = function() {
     }
 
     if (!storage[constants.CALENDARS_STORAGE_KEY]) {
-      // We don't have any calendars yet? Probably the first time.
       feeds.fetchCalendars();
       return;
     }
@@ -261,9 +116,7 @@ feeds.fetchEvents = function() {
       if (typeof calendar.visible !== 'undefined' && calendar.visible) {
         pendingRequests++;
         feeds.fetchEventsFromCalendar_(calendar, function(events) {
-          // Merge events from all calendars into a single array.
           if (events) {
-            // events can be undefined if the calendar fetch resulted in an HTTP error.
             allEvents = allEvents.concat(events);
           }
 
@@ -286,14 +139,6 @@ feeds.fetchEvents = function() {
   });
 };
 
-
-/**
- * Retrieves events from a given calendar from the server.
- * @param {Object} feed A feed object: {title:'', url:'', color:''}.
- * @param {function(?Array.<Object>)} callback A callback called when events
- *     are available.
- * @private
- */
 feeds.fetchEventsFromCalendar_ = function(feed, callback) {
   background.log('feeds.fetchEventsFromCalendar_()', feed.title);
 
@@ -310,18 +155,6 @@ feeds.fetchEventsFromCalendar_ = function(feed, callback) {
   });
 };
 
-
-/**
- * Fetch events recursively in DAYS_IN_AGENDA_ day intervals until events are found or
- * MAX_DAYS_IN_AGENDA_ is reached.
- * @param {Object} feed A feed object: {title:'', url:'', color:''}.
- * @param {function(?Array.<Object>)} callback A callback called when events
- *     are available.
- * @param {string} authToken An authorization token.
- * @param {int} days Current upper limit of days to fetch
- * @param {Moment} fromDate Start date for events
- * @private
- */
 feeds.fetchEventsRecursively_ = function(feed, callback, authToken, days, fromDate) {
   var toDate = moment().add('days', days);
   var feedUrl =
@@ -356,7 +189,6 @@ feeds.fetchEventsRecursively_ = function(feed, callback, authToken, days, fromDa
             for (var attendeeId in eventEntry.attendees) {
               var attendee = eventEntry.attendees[attendeeId];
               if (attendee.self) {
-                // Of all attendees, only look at the entry for this user (self).
                 responseStatus = attendee.responseStatus;
                 comment = attendee.comment;
                 break;
@@ -377,9 +209,6 @@ feeds.fetchEventsRecursively_ = function(feed, callback, authToken, days, fromDa
             allday: !end ||
                 (start.hours() === 0 && start.minutes() === 0 && end.hours() === 0 &&
                  end.minutes() === 0),
-            location: eventEntry.location,
-            hangout_url: eventEntry.hangoutLink,
-            attachments: eventEntry.attachments,
             gcal_url: eventEntry.htmlLink,
             responseStatus: responseStatus,
             comment: comment
@@ -395,15 +224,11 @@ feeds.fetchEventsRecursively_ = function(feed, callback, authToken, days, fromDa
         feeds.refreshUI();
         chrome.identity.removeCachedAuthToken({'token': authToken}, function() {});
       }
-      // Must callback here, otherwise the caller keeps waiting for all calendars to load.
       callback(null);
     }
   });
 };
 
-/**
- * Updates the notification alarms
- */
 feeds.updateNotification = function() {
   if (!options.get(options.Options.SHOW_NOTIFICATIONS)) {
     return;
@@ -415,7 +240,6 @@ feeds.updateNotification = function() {
       continue;
     }
     for (var j = 0; j < feeds.events[i].reminders.length; j++) {
-      // Only create notifications of popup types
       if (feeds.events[i].reminders[j].method !== 'popup') {
         continue;
       }
@@ -433,10 +257,6 @@ feeds.updateNotification = function() {
   }
 };
 
-/**
- * Updates the 'minutes/hours/days until' visible badge from the events
- * obtained during the last fetch. Does not fetch new data.
- */
 feeds.refreshUI = function() {
   chrome.identity.getAuthToken({'interactive': false}, function(authToken) {
     if (chrome.runtime.lastError || !authToken) {
@@ -452,7 +272,6 @@ feeds.refreshUI = function() {
   feeds.removePastEvents_();
   feeds.determineNextEvents_();
 
-  // If there are no more next events to show, reset the badge and bail out.
   if (feeds.nextEvents.length === 0) {
     background.updateBadge({'text': '', 'title': chrome.i18n.getMessage('no_upcoming_events')});
     return;
@@ -471,28 +290,15 @@ feeds.refreshUI = function() {
     background.updateBadge({'text': '', 'title': feeds.getTooltipForEvents_(feeds.nextEvents)});
   }
 
-  // Notify the browser action in case it's open.
   chrome.extension.sendMessage({method: 'sync-icon.spinning.stop'});
   chrome.extension.sendMessage({method: 'ui.refresh'});
 };
 
-
-/**
- * Removes events from the global feeds.events list that have already
- * occurred. Events that have started and in progress are retained.
- * @private
- */
 feeds.removePastEvents_ = function() {
-  // If the last fetch returned no events, it's an empty calendar, so bail out
-  // right away. Never request a second fetch, else it will loop infinitely
-  // and inundate the server.
   if (feeds.events.length === 0) {
     return;
   }
 
-  // At this point, there are non-zero events present, so it's not a completely
-  // empty calendar. Look at the end time instead of the start time, so that
-  // events in progress are retained.
   var futureAndCurrentEvents = [];
   for (var i = 0; i < feeds.events.length; ++i) {
     if (feeds.events[i].end > moment().valueOf()) {
@@ -501,20 +307,11 @@ feeds.removePastEvents_ = function() {
   }
   feeds.events = futureAndCurrentEvents;
 
-  // If there are no more future events left, then fetch a few more & update
-  // the badge.
   if (feeds.events.length === 0) {
     feeds.fetchEvents();
   }
 };
 
-/**
- * Updates the global feeds.nextEvents list by determining the immediately next
- * event to occur from the global feeds.events list. If more than one event
- * starts at the same time, all of them are included. This is not the list of
- * all future events, just the immediately next ones.
- * @private
- */
 feeds.determineNextEvents_ = function() {
   if (feeds.events.length === 0) {
     return;
@@ -524,7 +321,7 @@ feeds.determineNextEvents_ = function() {
   for (var i = 0; i < feeds.events.length; ++i) {
     var event = feeds.events[i];
     if (event.start < moment().valueOf()) {
-      continue;  // All-day events for today, or events from earlier in the day.
+      continue;
     }
     if (event.responseStatus == constants.EVENT_STATUS_DECLINED) {
       continue;
@@ -534,15 +331,10 @@ feeds.determineNextEvents_ = function() {
     }
 
     if (feeds.nextEvents.length === 0) {
-      // If we have not yet found any next events, then pick the first one that
-      // is not skipped by the above if-condition.
       feeds.nextEvents.push(event);
       continue;
     }
 
-    // At this point in the loop, we know there is at least one next event
-    // starting at a specific time. Now we need to pick any more events that may
-    // exist, that all start at the exact same time as the first event.
     if (event.start == feeds.nextEvents[0].start) {
       feeds.nextEvents.push(event);
     } else {
@@ -551,14 +343,6 @@ feeds.determineNextEvents_ = function() {
   }
 };
 
-
-/**
- * Returns a formatted tooltip for the badge, given a set of events that all
- * occur at the same time.
- * @param {Array.<Object>} nextEvents A list of events.
- * @return {string} A formatted tooltip.
- * @private
- */
 feeds.getTooltipForEvents_ = function(nextEvents) {
   var tooltipLines = [];
   if (nextEvents.length > 0) {
