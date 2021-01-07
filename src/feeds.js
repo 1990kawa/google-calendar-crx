@@ -1,4 +1,4 @@
-var feeds = {};
+let feeds = {};
 
 feeds.SETTINGS_API_URL_ = 'https://www.googleapis.com/calendar/v3/users/me/settings';
 feeds.CALENDAR_LIST_API_URL_ = 'https://www.googleapis.com/calendar/v3/users/me/calendarList';
@@ -31,7 +31,7 @@ feeds.fetchCalendars = function() {
       background.log('Error retrieving settings: ', chrome.runtime.lastError.message);
     }
 
-    var storedCalendars = storage[constants.CALENDARS_STORAGE_KEY] || {};
+    let storedCalendars = storage[constants.CALENDARS_STORAGE_KEY] || {};
     chrome.identity.getAuthToken({'interactive': false}, function(authToken) {
       if (chrome.runtime.lastError) {
         chrome.extension.sendMessage({method: 'sync-icon.spinning.stop'});
@@ -42,19 +42,19 @@ feeds.fetchCalendars = function() {
       $.ajax(feeds.CALENDAR_LIST_API_URL_, {
         headers: {'Authorization': 'Bearer ' + authToken},
         success: function(data) {
-          var calendars = {};
-          for (var i = 0; i < data.items.length; i++) {
-            var calendar = data.items[i];
-            var serverCalendarID = calendar.id;
-            var storedCalendar = storedCalendars[serverCalendarID] || {};
+          let calendars = {};
+          for (let i = 0; i < data.items.length; i++) {
+            let calendar = data.items[i];
+            if ( calendar.accessRole != 'writer' && calendar.accessRole != 'owner' ) { continue; }
+            let serverCalendarID = calendar.id;
+            let storedCalendar = storedCalendars[serverCalendarID] || {};
 
-            var visible = (typeof storedCalendar.visible !== 'undefined') ? storedCalendar.visible :
+            let visible = (typeof storedCalendar.visible !== 'undefined') ? storedCalendar.visible :
                                                                             calendar.selected;
 
-            var mergedCalendar = {
+            let mergedCalendar = {
               id: serverCalendarID,
               title: calendar.summary,
-              editable: calendar.accessRole == 'writer' || calendar.accessRole == 'owner',
               description: calendar.description || '',
               foregroundColor: calendar.foregroundColor,
               backgroundColor: calendar.backgroundColor,
@@ -64,7 +64,7 @@ feeds.fetchCalendars = function() {
             calendars[serverCalendarID] = mergedCalendar;
           }
 
-          var store = {};
+          let store = {};
           store[constants.CALENDARS_STORAGE_KEY] = calendars;
           chrome.storage.local.set(store, function() {
             if (chrome.runtime.lastError) {
@@ -105,14 +105,14 @@ feeds.fetchEvents = function() {
       return;
     }
 
-    var calendars = storage[constants.CALENDARS_STORAGE_KEY] || {};
+    let calendars = storage[constants.CALENDARS_STORAGE_KEY] || {};
     background.log('storage[constants.CALENDARS_STORAGE_KEY]: ', calendars);
 
-    var hiddenCalendars = [];
-    var allEvents = [];
-    var pendingRequests = 0;
-    for (var calendarURL in calendars) {
-      var calendar = calendars[calendarURL] || {};
+    let hiddenCalendars = [];
+    let allEvents = [];
+    let pendingRequests = 0;
+    for (let calendarURL in calendars) {
+      let calendar = calendars[calendarURL] || {};
       if (typeof calendar.visible !== 'undefined' && calendar.visible) {
         pendingRequests++;
         feeds.fetchEventsFromCalendar_(calendar, function(events) {
@@ -150,14 +150,14 @@ feeds.fetchEventsFromCalendar_ = function(feed, callback) {
       return;
     }
 
-    var fromDate = moment();
+    let fromDate = moment();
     feeds.fetchEventsRecursively_(feed, callback, authToken, feeds.DAYS_IN_AGENDA_, fromDate);
   });
 };
 
 feeds.fetchEventsRecursively_ = function(feed, callback, authToken, days, fromDate) {
-  var toDate = moment().add('days', days);
-  var feedUrl =
+  let toDate = moment().add('days', days);
+  let feedUrl =
       feeds.CALENDAR_EVENTS_API_URL_.replace('{calendarId}', encodeURIComponent(feed.id)) + ([
         'timeMin=' + encodeURIComponent(fromDate.toISOString()),
         'timeMax=' + encodeURIComponent(toDate.toISOString()), 'maxResults=500',
@@ -169,7 +169,7 @@ feeds.fetchEventsRecursively_ = function(feed, callback, authToken, days, fromDa
     success: (function(feed) {
       return function(data) {
         if (data.items.length == 0) {
-          var nextInterval = days + feeds.DAYS_IN_AGENDA_;
+          let nextInterval = days + feeds.DAYS_IN_AGENDA_;
           if (nextInterval < feeds.MAX_DAYS_IN_AGENDA_) {
             feeds.fetchEventsRecursively_(feed, callback, authToken, nextInterval, fromDate);
             return;
@@ -177,17 +177,17 @@ feeds.fetchEventsRecursively_ = function(feed, callback, authToken, days, fromDa
         }
 
         background.log('Received events, now parsing.', feed.title);
-        var events = [];
-        for (var i = 0; i < data.items.length; i++) {
-          var eventEntry = data.items[i];
-          var start = utils.fromIso8601(eventEntry.start.dateTime || eventEntry.start.date);
-          var end = utils.fromIso8601(eventEntry.end.dateTime || eventEntry.end.date);
+        let events = [];
+        for (let i = 0; i < data.items.length; i++) {
+          let eventEntry = data.items[i];
+          let start = utils.fromIso8601(eventEntry.start.dateTime || eventEntry.start.date);
+          let end = utils.fromIso8601(eventEntry.end.dateTime || eventEntry.end.date);
 
-          var responseStatus = '';
-          var comment = '';
+          let responseStatus = '';
+          let comment = '';
           if (eventEntry.attendees) {
-            for (var attendeeId in eventEntry.attendees) {
-              var attendee = eventEntry.attendees[attendeeId];
+            for (let attendeeId in eventEntry.attendees) {
+              let attendee = eventEntry.attendees[attendeeId];
               if (attendee.self) {
                 responseStatus = attendee.responseStatus;
                 comment = attendee.comment;
@@ -235,19 +235,19 @@ feeds.updateNotification = function() {
   }
   chrome.alarms.clearAll();
 
-  for (var i = 0; i < feeds.events.length; i++) {
+  for (let i = 0; i < feeds.events.length; i++) {
     if (feeds.events[i].reminders.length === 0) {
       continue;
     }
-    for (var j = 0; j < feeds.events[i].reminders.length; j++) {
+    for (let j = 0; j < feeds.events[i].reminders.length; j++) {
       if (feeds.events[i].reminders[j].method !== 'popup') {
         continue;
       }
 
-      var timeUntilReminderMinutes = feeds.events[i].reminders[j].minutes;
-      var eventId = {event_id: feeds.events[i].event_id, reminder: timeUntilReminderMinutes};
+      let timeUntilReminderMinutes = feeds.events[i].reminders[j].minutes;
+      let eventId = {event_id: feeds.events[i].event_id, reminder: timeUntilReminderMinutes};
 
-      var alarmSchedule =
+      let alarmSchedule =
           moment(feeds.events[i].start).subtract(timeUntilReminderMinutes, 'minutes');
       if (alarmSchedule.isBefore(moment())) {
         continue;
@@ -278,8 +278,8 @@ feeds.refreshUI = function() {
   }
 
   if (options.get(options.Options.BADGE_TEXT_SHOWN)) {
-    var nextEvent = feeds.nextEvents[0];
-    var badgeText = moment(nextEvent.start).lang('relative-formatter').fromNow();
+    let nextEvent = feeds.nextEvents[0];
+    let badgeText = moment(nextEvent.start).lang('relative-formatter').fromNow();
 
     background.updateBadge({
       'color': nextEvent.feed.backgroundColor,
@@ -299,8 +299,8 @@ feeds.removePastEvents_ = function() {
     return;
   }
 
-  var futureAndCurrentEvents = [];
-  for (var i = 0; i < feeds.events.length; ++i) {
+  let futureAndCurrentEvents = [];
+  for (let i = 0; i < feeds.events.length; ++i) {
     if (feeds.events[i].end > moment().valueOf()) {
       futureAndCurrentEvents.push(feeds.events[i]);
     }
@@ -318,8 +318,8 @@ feeds.determineNextEvents_ = function() {
   }
 
   feeds.nextEvents = [];
-  for (var i = 0; i < feeds.events.length; ++i) {
-    var event = feeds.events[i];
+  for (let i = 0; i < feeds.events.length; ++i) {
+    let event = feeds.events[i];
     if (event.start < moment().valueOf()) {
       continue;
     }
@@ -344,14 +344,14 @@ feeds.determineNextEvents_ = function() {
 };
 
 feeds.getTooltipForEvents_ = function(nextEvents) {
-  var tooltipLines = [];
+  let tooltipLines = [];
   if (nextEvents.length > 0) {
-    var startMoment = moment(nextEvents[0].start);
+    let startMoment = moment(nextEvents[0].start);
     tooltipLines.push(startMoment.calendar() + ' (' + startMoment.fromNow() + ')');
   }
 
-  for (var i = 0; i < nextEvents.length; i++) {
-    var event = nextEvents[i];
+  for (let i = 0; i < nextEvents.length; i++) {
+    let event = nextEvents[i];
     tooltipLines.push(' • ' + event.title + ' (' + event.feed.title + ')');
   }
   return tooltipLines.join('\n');

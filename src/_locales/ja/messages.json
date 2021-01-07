@@ -1,6 +1,6 @@
 {
   "google_calendar_extension_name": {
-    "message": "Reply for Google Calendar",
+    "message": "Reply for Calendar",
     "description": "The name of this extension."
   },
   "google_calendar_extension_desc": {
@@ -8,7 +8,7 @@
     "description": "Description of what this extension does."
   },
   "logo_text": {
-    "message": "Reply for Google Calendar",
+    "message": "Reply for Calendar",
     "description": "The name of the Calendar product, including the word Google."
   },
   "read_more_at_original_url": {
@@ -18,18 +18,6 @@
   "view_agenda": {
     "message": "説明",
     "description": "Used in the popup view just before the actual calendar agenda."
-  },
-  "add_an_event": {
-    "message": "予定の追加",
-    "description": "Header that appears just above the form that lets users add custom events."
-  },
-  "event_title_placeholder": {
-    "message": "例: 友人と明日夜7時に夕食",
-    "description": "Placeholder in the textarea where the user is instructed to type in the title of the event they want to create."
-  },
-  "quick_add_button": {
-    "message": "追加",
-    "description": "Text on the button that adds a new event to the calendar from user input."
   },
   "no_events_today": {
     "message": "今日の予定はありません",
@@ -55,9 +43,9 @@
     "message": "問題がありますか？",
     "description": "A link that provides troubleshooting information related to authorization."
   },
-  "error_saving_new_event": {
-    "message": "新しい予定を作成中にエラーが起きました。もう一度試してください。",
-    "description": "An error message shown when a user-added quick-add event could not be saved."
+  "error_update_event": {
+    "message": "予定を更新中にエラーが起きました。もう一度試してください。",
+    "description": "An error message shown when a user-update event could not be saved."
   },
   "add_to_google_calendar": {
     "message": "Google カレンダーに追加",

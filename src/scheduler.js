@@ -1,4 +1,4 @@
-var scheduler = {};
+let scheduler = {};
 
 scheduler.CALENDARS_POLL_INTERVAL_MS_ = 6 * 60 * 60 * 1000;
 scheduler.EVENTS_POLL_INTERVAL_MS_ = 60 * 60 * 1000;
@@ -12,11 +12,11 @@ scheduler.start = function() {
   window.setInterval(function() {
     feeds.refreshUI();
 
-    var now = (new Date()).getTime();
+    let now = (new Date()).getTime();
     if (!feeds.lastFetchedAt) {
       feeds.fetchCalendars();
     } else {
-      var feedsFetchedAtMs = feeds.lastFetchedAt.getTime();
+      let feedsFetchedAtMs = feeds.lastFetchedAt.getTime();
       if (now - feedsFetchedAtMs > scheduler.CALENDARS_POLL_INTERVAL_MS_) {
         feeds.fetchCalendars();
       } else if (now - feedsFetchedAtMs > scheduler.EVENTS_POLL_INTERVAL_MS_) {
