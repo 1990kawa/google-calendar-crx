@@ -33,6 +33,9 @@ var browseraction = {};
 browseraction.QUICK_ADD_API_URL_ =
     'https://www.googleapis.com/calendar/v3/calendars/{calendarId}/events/quickAdd';
 
+browseraction.PATCH_API_URL_ =
+    'https://www.googleapis.com/calendar/v3/calendars/{calendarId}/events/{eventId}';
+
 /**
  * Milliseconds to wait before fading out the alert shown when the user adds
  * a new event.
@@ -358,6 +361,53 @@ browseraction.createQuickAddEvent_ = function(text, calendarId) {
   });
 };
 
+browseraction.updateEventIntoCalendar_ = function(value, event, comment) {
+  var patchUrl =
+      browseraction.PATCH_API_URL_.replace('{calendarId}', encodeURIComponent(event.feed.id));
+  patchUrl = patchUrl.replace('{eventId}', encodeURIComponent(event.event_id))
+
+  chrome.identity.getAuthToken({'interactive': false}, function(authToken) {
+    if (chrome.runtime.lastError || !authToken) {
+      chrome.extension.getBackgroundPage().background.log(
+          'getAuthToken', chrome.runtime.lastError.message);
+      return;
+    }
+
+    var body = {
+      "attendees": [
+        {
+          "responseStatus": value,
+          "email": event.feed.id,
+          "comment": comment
+        }
+      ]
+    }
+
+    browseraction.startSpinner();
+    $.ajax(patchUrl, {
+      type: 'PATCH',
+      headers: {'Authorization': 'Bearer ' + authToken},
+      data: JSON.stringify(body), //JSON.stringify(body),
+      contentType: 'application/json',
+      success: function(response) {
+        browseraction.stopSpinner();
+        chrome.extension.sendMessage({method: 'events.feed.fetch'});
+      },
+      error: function(response) {
+        browseraction.stopSpinner();
+        $('#info_bar').text(chrome.i18n.getMessage('error_saving_new_event')).slideDown();
+        window.setTimeout(function() {
+          $('#info_bar').slideUp();
+        }, constants.INFO_BAR_DISMISS_TIMEOUT_MS);
+        chrome.extension.getBackgroundPage().background.log(
+            'Error adding Quick Add event', response.statusText);
+        if (response.status === 401) {
+          chrome.identity.removeCachedAuthToken({'token': authToken}, function() {});
+        }
+      }
+    });
+  });
+};
 
 /**
  * Retrieves events from the calendar feed, sorted by start time, and displays
@@ -389,6 +439,7 @@ browseraction.showEventsFromFeed_ = function(events) {
   // multi-day events (i.e., started last week, ends next week) will be shown
   // under today's date header, not under the date it started.
   var headerDate = moment().hours(0).minutes(0).seconds(0).millisecond(0);
+  console.log(headerDate)
 
   // Insert a new div for every day, that contains all events of a single day (necessary for
   // 'position: sticky')
@@ -466,15 +517,6 @@ browseraction.createEventDiv_ = function(event) {
   if (event.allday || isMultiDayEventWithTime) {
     eventDiv.addClass('all-day');
   }
-  eventDiv
-      .on('click',
-          function() {
-            browseraction.goToCalendar_($(this).attr('data-url'));
-          })
-      .on('click', 'a', function(event) {
-        // Clicks on anchor tags shouldn't propagate to eventDiv handler.
-        event.stopPropagation();
-      });
 
   var timeFormat =
       chrome.extension.getBackgroundPage().options.get('format24HourTime') ? 'HH:mm' : 'h:mma';
@@ -520,8 +562,21 @@ browseraction.createEventDiv_ = function(event) {
         .appendTo(eventDetails);
   }
 
-  var eventTitle = $('<div>').addClass('event-title').text(event.title);
-  var response = event.responseStatus === "accepted" ? "参加" : "";
+  var eventTitle = $('<div>').addClass('event-title');
+  $('<a>').attr({'href': event.gcal_url, 'target': '_blank'}).text(event.title).appendTo(eventTitle);
+
+  var response = ""
+  switch(event.responseStatus) {
+    case 'accepted':
+      response = "参加";
+      break;
+    case 'needsAction':
+      response = "未定";
+      break;
+    case constants.EVENT_STATUS_DECLINED:
+      response = "不参加";
+      break;
+  }
   if (event.responseStatus === "accepted" && event.comment) {
     ["リモート", "remote"].forEach(k => {
       if(event.comment.indexOf(k) >= 0) {
@@ -529,14 +584,43 @@ browseraction.createEventDiv_ = function(event) {
       }
     })
   }
+  var comment = ""
   var eventRes = $('<div>').addClass('event-res').text("出欠: " + response)
   var eventComment = $('<div>').addClass('event-res').text("メモ: " + (event.comment || ""))
+  var status = $('<div>').addClass('event-res').text("ステータス: " + (event.responseStatus === "needsAction" ? "未回答" : "回答済み"))
   if (event.responseStatus == constants.EVENT_STATUS_DECLINED) {
     eventTitle.addClass('declined');
   }
+  var buttonList = $('<div>').addClass('event-button-wrap')
+  var buttonAccepted = $('<button>').addClass('event-button').text('参加')
+  buttonAccepted.on('click', function() {
+    if (event.comment) { comment = event.comment.replaceAll('remote ', "") }
+    browseraction.updateEventIntoCalendar_('accepted', event, comment)
+  })
+  var buttonRemote = $('<button>').addClass('event-button').text('リモート参加')
+  buttonRemote.on('click', function() {
+    if (event.comment) { comment = event.comment.replaceAll('remote ', "") }
+    browseraction.updateEventIntoCalendar_('accepted', event, "remote " + comment)
+  })
+  var buttonDeclined = $('<button>').addClass('event-button').text('不参加')
+  buttonDeclined.on('click', function() {
+    if (event.comment) { comment = event.comment.replaceAll('remote ', "") }
+    browseraction.updateEventIntoCalendar_('declined', event, comment)
+  })
+  var buttonTentetive = $('<button>').addClass('event-button').text('未定')
+  buttonTentetive.on('click', function() {
+    if (event.comment) { comment = event.comment.replaceAll('remote ', "") }
+    browseraction.updateEventIntoCalendar_('needsAction', event, comment)
+  })
+  buttonAccepted.appendTo(buttonList)
+  buttonRemote.appendTo(buttonList)
+  buttonDeclined.appendTo(buttonList)
+  buttonTentetive.appendTo(buttonList)
   eventTitle.appendTo(eventDetails);
   eventRes.appendTo(eventDetails);
   eventComment.appendTo(eventDetails);
+  status.appendTo(eventDetails);
+  buttonList.appendTo(eventDetails);
 
   if (event.location) {
     var url = event.location.match(/^https?:\/\//) ?

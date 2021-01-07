@@ -20,11 +20,10 @@
 }
 
 body {
-  background: #e5e5e5;
   font-size: 14px;
   height: 480px;
   overflow-y: scroll;
-  width: 300px;
+  width: 330px;
   line-height: 20px;
   padding: 0;
   margin: 0;
@@ -184,17 +183,13 @@ h2 {
 /* Small fix for the sticky property, so the date-header moves after the last events shadow.
 Otherwise there would be a small black line. */
 .calendar-day {
-  padding-bottom: 1px;
+  padding-bottom: 13px;
 }
 
 .date-header {
   color: #666;
-  background: #e5e5e5;
   font-size: 16px;
   padding: 4px 0;
-  position: sticky;
-  top: 0;
-  z-index: 1;
   /* box-shadow on both sides to hide the underlying shadow of an event */
   box-shadow: -5px 0 0 0 #e5e5e5, 5px 0 0 0 #e5e5e5;
 }
@@ -283,6 +278,30 @@ Otherwise there would be a small black line. */
   text-overflow: ellipsis;
   white-space: nowrap;
   float: left;
+}
+
+.event-button-wrap {
+  clear: both;
+}
+
+.event-button {
+  background: #0086f4;
+  border: 0;
+  border-radius: 2px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  color: #fff;
+  cursor: pointer;
+  display: inline-block;
+  font-size: 9px;
+  text-transform: uppercase;
+  line-height: 18px;
+  min-width: 10px;
+  margin: 1px 3px 3px;
+  padding: 6px 10px;
+  text-align: center;
+  -webkit-transition: all 0.218s;
+          transition: all 0.218s;
+
 }
 
 .event:first {

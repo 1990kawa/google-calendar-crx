@@ -1,14 +1,14 @@
 {
   "google_calendar_extension_name": {
-    "message": "Google カレンダー",
+    "message": "Reply for Google Calendar",
     "description": "The name of this extension."
   },
   "google_calendar_extension_desc": {
-    "message": "ワンクリックで位置やファイルを含んだあなたの Google カレンダーの予定の一覧を見ることができます。",
+    "message": "あなたの Google カレンダーの予定の参加可否を選択することができます。",
     "description": "Description of what this extension does."
   },
   "logo_text": {
-    "message": "Google カレンダー",
+    "message": "Reply for Google Calendar",
     "description": "The name of the Calendar product, including the word Google."
   },
   "read_more_at_original_url": {
@@ -112,11 +112,11 @@
     "description": "Show notifications before an event starts."
   },
   "date_format_date_header": {
-    "message": "dddd, MMMM D",
+    "message": "YYYY/MM/DD",
     "description": "Date format to be used in '.date-header'."
   },
   "date_format_event_allday": {
-    "message": "MMM D, YYYY",
+    "message": "YYYY/MM/DD",
     "description": "Date format to be used for all-day and multi-day events."
   },
   "your_event_starts_in": {
