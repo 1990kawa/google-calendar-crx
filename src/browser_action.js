@@ -56,10 +56,6 @@ browseraction.installButtonClickHandlers_ = function() {
     chrome.extension.sendMessage({method: 'events.feed.fetch'}, browseraction.showEventsFromFeed_);
   });
 
-  $('#show_options').on('click', function() {
-    chrome.tabs.create({'url': 'options.html'});
-  });
-
   $('#quick_add_button').on('click', function() {
     browseraction.addNewEventIntoCalendar_();
   });
@@ -304,7 +300,7 @@ browseraction.createEventDiv_ = function(event) {
     eventDiv.addClass('all-day');
   }
 
-  let timeFormat = chrome.extension.getBackgroundPage().options.get('format24HourTime') ? 'HH:mm' : 'h:mma';
+  let timeFormat = 'HH:mm';
 
   let dateTimeFormat;
   if (event.allday) {

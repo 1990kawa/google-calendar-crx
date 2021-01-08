@@ -10,13 +10,11 @@
     "128": "icons/logo_calendar_256.png"
   },
   "permissions": [
-    "alarms",
     "identity",
-    "notifications",
     "storage"
   ],
   "oauth2": {
-    "client_id": "697357296747-s465spns83moii7sdd0nfmbtio2uggl8.apps.googleusercontent.com",
+    "client_id": "697357296747-9i4r7ude1k9n7moui8rs2ih4olbl61rm.apps.googleusercontent.com",
     "scopes": [
       "https://www.googleapis.com/auth/calendar"
     ]
@@ -28,7 +26,6 @@
       "lib/jquery.min.js",
       "lib/moment+langs.min.js",
       "constants.js",
-      "options.js",
       "utils.js",
       "feeds.js",
       "scheduler.js",
@@ -41,6 +38,6 @@
       "38": "icons/logo_calendar_38.png"
     },
     "default_title": "__MSG_google_calendar_extension_name__",
-    "default_popup": "browser_action.html"
+    "default_popup": "index.html"
   }
 }

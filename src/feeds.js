@@ -1,9 +1,7 @@
 let feeds = {};
 
-feeds.SETTINGS_API_URL_ = 'https://www.googleapis.com/calendar/v3/users/me/settings';
 feeds.CALENDAR_LIST_API_URL_ = 'https://www.googleapis.com/calendar/v3/users/me/calendarList';
-feeds.CALENDAR_EVENTS_API_URL_ =
-    'https://www.googleapis.com/calendar/v3/calendars/{calendarId}/events?';
+feeds.CALENDAR_EVENTS_API_URL_ = 'https://www.googleapis.com/calendar/v3/calendars/{calendarId}/events?';
 
 feeds.DAYS_IN_AGENDA_ = 16;
 feeds.MAX_DAYS_IN_AGENDA_ = 31;
@@ -17,7 +15,7 @@ feeds.requestInteractiveAuthToken = function() {
       background.log('getAuthToken', chrome.runtime.lastError.message);
       return;
     }
-    feeds.refreshUI();  // Causes the badge text to be updated.
+    feeds.refreshUI();
     feeds.fetchCalendars();
   });
 };
@@ -126,7 +124,6 @@ feeds.fetchEvents = function() {
             });
             feeds.events = allEvents;
             feeds.refreshUI();
-            feeds.updateNotification();
           }
         });
       } else {
@@ -229,34 +226,6 @@ feeds.fetchEventsRecursively_ = function(feed, callback, authToken, days, fromDa
   });
 };
 
-feeds.updateNotification = function() {
-  if (!options.get(options.Options.SHOW_NOTIFICATIONS)) {
-    return;
-  }
-  chrome.alarms.clearAll();
-
-  for (let i = 0; i < feeds.events.length; i++) {
-    if (feeds.events[i].reminders.length === 0) {
-      continue;
-    }
-    for (let j = 0; j < feeds.events[i].reminders.length; j++) {
-      if (feeds.events[i].reminders[j].method !== 'popup') {
-        continue;
-      }
-
-      let timeUntilReminderMinutes = feeds.events[i].reminders[j].minutes;
-      let eventId = {event_id: feeds.events[i].event_id, reminder: timeUntilReminderMinutes};
-
-      let alarmSchedule =
-          moment(feeds.events[i].start).subtract(timeUntilReminderMinutes, 'minutes');
-      if (alarmSchedule.isBefore(moment())) {
-        continue;
-      }
-      chrome.alarms.create(JSON.stringify(eventId), {when: alarmSchedule.valueOf()});
-    }
-  }
-};
-
 feeds.refreshUI = function() {
   chrome.identity.getAuthToken({'interactive': false}, function(authToken) {
     if (chrome.runtime.lastError || !authToken) {
@@ -277,18 +246,7 @@ feeds.refreshUI = function() {
     return;
   }
 
-  if (options.get(options.Options.BADGE_TEXT_SHOWN)) {
-    let nextEvent = feeds.nextEvents[0];
-    let badgeText = moment(nextEvent.start).lang('relative-formatter').fromNow();
-
-    background.updateBadge({
-      'color': nextEvent.feed.backgroundColor,
-      'text': badgeText,
-      'title': feeds.getTooltipForEvents_(feeds.nextEvents)
-    });
-  } else {  // User has chosen not to show a badge, but we still set a tooltip.
-    background.updateBadge({'text': '', 'title': feeds.getTooltipForEvents_(feeds.nextEvents)});
-  }
+  background.updateBadge({'text': '', 'title': feeds.getTooltipForEvents_(feeds.nextEvents)});
 
   chrome.extension.sendMessage({method: 'sync-icon.spinning.stop'});
   chrome.extension.sendMessage({method: 'ui.refresh'});
@@ -324,9 +282,6 @@ feeds.determineNextEvents_ = function() {
       continue;
     }
     if (event.responseStatus == constants.EVENT_STATUS_DECLINED) {
-      continue;
-    }
-    if (!options.get(options.Options.TIME_UNTIL_NEXT_INCLUDES_ALL_DAY_EVENTS) && event.allday) {
       continue;
     }
 

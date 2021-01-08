@@ -9,17 +9,6 @@ background.BADGE_COLORS = {
 background.BadgeProperties;
 
 background.log = function(message, opt_dump) {
-  if (options.get(options.Options.DEBUG_ENABLE_LOGS)) {
-    var timestampedMessage = '[' + moment().toISOString() + '] ' + message;
-    if (opt_dump) {
-      background.logs_.push(
-          timestampedMessage + ' ' + JSON.stringify(opt_dump, null /* replacer */, '  '));
-      window.console.log(timestampedMessage, opt_dump);
-    } else {
-      background.logs_.push(timestampedMessage);
-      window.console.log(timestampedMessage);
-    }
-  }
 };
 
 background.initialize = function() {
@@ -61,10 +50,6 @@ background.listenForRequests_ = function() {
 
       case 'events.feed.fetch':
         feeds.fetchCalendars();
-        break;
-
-      case 'options.changed':
-        feeds.refreshUI();
         break;
 
       case 'authtoken.update':
