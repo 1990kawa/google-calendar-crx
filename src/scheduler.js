@@ -4,12 +4,12 @@ scheduler.CALENDARS_POLL_INTERVAL_MS_ = 6 * 60 * 60 * 1000;
 scheduler.EVENTS_POLL_INTERVAL_MS_ = 60 * 60 * 1000;
 scheduler.BADGE_UPDATE_INTERVAL_MS_ = 60 * 1000;
 
-scheduler.start = function() {
+scheduler.start = () => {
   chrome.extension.getBackgroundPage().background.log('scheduler.start()');
 
   feeds.fetchCalendars();
 
-  window.setInterval(function() {
+  window.setInterval(() => {
     feeds.refreshUI();
 
     let now = (new Date()).getTime();

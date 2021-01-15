@@ -6,38 +6,14 @@ main.SHOW_EVENTS_DELAY_MS = 100
 
 main.init = () => {
   chrome.extension.getBackgroundPage().background.log('main.init()')
-  main.fillMessages_()
-  main.installButtonClickHandlers_()
-  main.showLoginMessageIfNotAuthenticated_()
+  moment.lang('ja')
+  main.installButtonClickHandlers()
+  main.showLoginMessageIfNotAuthenticated()
   main.listenForRequests_()
   chrome.extension.sendMessage({method: 'events.feed.get'}, main.showEventsFromFeed_)
 }
 
-main.fillMessages_ = () => {
-  moment.lang('en')
-  moment.lang(window.navigator.language)
-  if (moment.lang() != window.navigator.language) {
-    moment.lang(window.navigator.language.substring(0, 2))
-  }
-
-  $('.i18n').each(function() {
-    let i18nText = chrome.i18n.getMessage($(this).attr('id').toString())
-    if (!i18nText) {
-      chrome.extension.getBackgroundPage().background.log('Error getting string for: ', $(this).attr('id').toString())
-      return
-    }
-
-    if ($(this).prop('tagName') == 'IMG') {
-      $(this).attr({'title': i18nText})
-    } else {
-      $(this).text(i18nText)
-    }
-  })
-
-  $('[data-href="calendar_ui_url"]').attr('href', constants.CALENDAR_UI_URL)
-}
-
-main.installButtonClickHandlers_ = () => {
+main.installButtonClickHandlers = () => {
   $('#authorization_required').on('click', () => {
     $('#authorization_required').text(chrome.i18n.getMessage('authorization_in_progress'))
     chrome.extension.sendMessage({method: 'authtoken.update'})
@@ -48,7 +24,7 @@ main.installButtonClickHandlers_ = () => {
   })
 }
 
-main.showLoginMessageIfNotAuthenticated_ = () => {
+main.showLoginMessageIfNotAuthenticated = () => {
   chrome.identity.getAuthToken({'interactive': false}, authToken => {
     if (chrome.runtime.lastError || !authToken) {
       chrome.extension.getBackgroundPage().background.log('getAuthToken', chrome.runtime.lastError.message)
@@ -89,7 +65,6 @@ main.startSpinner = () => {
 
 main.stopSpinner = () => {
   $('#sync_now').one('animationiteration webkitAnimationIteration', function() {
-    console.log(this)
     $(this).removeClass('spinning')
   })
 }
@@ -122,10 +97,10 @@ function showToast(parent, summary, linkUrl) {
   }, main.TOAST_FADE_OUT_DURATION_MS)
 }
 
-main.updateEventIntoCalendar_ = (value, event, comment) => {
+main.updateEventIntoCalendar = (value, event, comment) => {
+  chrome.extension.getBackgroundPage().background.log('update.status', { status: value })
   main.startSpinner()
-  let patchUrl =
-      main.PATCH_API_URL_.replace('{calendarId}', encodeURIComponent(event.feed.id))
+  let patchUrl = main.PATCH_API_URL_.replace('{calendarId}', encodeURIComponent(event.calendarId))
   patchUrl = patchUrl.replace('{eventId}', encodeURIComponent(event.event_id))
 
   chrome.identity.getAuthToken({'interactive': false}, authToken => {
@@ -138,24 +113,26 @@ main.updateEventIntoCalendar_ = (value, event, comment) => {
       "attendees": [
         {
           "responseStatus": value,
-          "email": event.feed.id,
+          "email": event.calendarId,
           "comment": comment
         }
       ]
     }
 
-    $.ajax(patchUrl, {
-      type: 'PATCH',
-      headers: {'Authorization': 'Bearer ' + authToken},
-      data: JSON.stringify(body),
-      contentType: 'application/json'
+    axios({
+      method: 'patch',
+      url: patchUrl,
+      headers: {
+        'Authorization': 'Bearer ' + authToken,
+        'Content-Type': 'application/json'
+      },
+      data: body
     })
-    .then(
-      response => {
+    .then(response => {
         main.stopSpinner()
         chrome.extension.sendMessage({method: 'events.feed.fetch'})
-      },
-      response => {
+      })
+    .catch(response => {
         main.stopSpinner()
         $('#info_bar').text(chrome.i18n.getMessage('error_update_event')).slideDown()
         window.setTimeout(function() {
@@ -304,7 +281,7 @@ main.createEventDiv_ = event => {
   }
   buttonAccepted.on('click', () => {
     comment = comment = comment.replaceAll('remote ', "")
-    main.updateEventIntoCalendar_(constants.EVENT_STATUS_ACCEPTED, event, comment)
+    main.updateEventIntoCalendar(constants.EVENT_STATUS_ACCEPTED, event, comment)
   })
   let buttonRemote = $('<button>').addClass('event-button').text('リモート参加')
   if (event.responseStatus === constants.EVENT_STATUS_ACCEPTED && comment.indexOf('remote') >= 0) {
@@ -312,50 +289,30 @@ main.createEventDiv_ = event => {
   }
   buttonRemote.on('click', () => {
     comment = comment.replaceAll('remote ', "")
-    main.updateEventIntoCalendar_(constants.EVENT_STATUS_ACCEPTED, event, "remote " + comment)
+    main.updateEventIntoCalendar(constants.EVENT_STATUS_ACCEPTED, event, "remote " + comment)
   })
   let buttonDeclined = $('<button>').addClass('event-button').text('不参加')
   if (event.responseStatus === constants.EVENT_STATUS_DECLINED) { buttonDeclined.addClass('event-button-selected') }
   buttonDeclined.on('click', () => {
     comment = comment.replaceAll('remote ', "")
-    main.updateEventIntoCalendar_(constants.EVENT_STATUS_DECLINED, event, comment)
+    main.updateEventIntoCalendar(constants.EVENT_STATUS_DECLINED, event, comment)
   })
-  let buttonTentetive = $('<button>').addClass('event-button').text('未定')
-  if (event.responseStatus === constants.EVENT_STATUS_TENTETIVE) { buttonTentetive.addClass('event-button-selected') }
-  buttonTentetive.on('click', () => {
-    event.comment.replaceAll('remote ', "")
-    main.updateEventIntoCalendar_(constants.EVENT_STATUS_TENTETIVE, event, comment)
+  let buttonTentative = $('<button>').addClass('event-button').text('未定')
+  if (event.responseStatus === constants.EVENT_STATUS_TENTATIVE) { buttonTentative.addClass('event-button-selected') }
+  buttonTentative.on('click', () => {
+    comment.replaceAll('remote ', "")
+    main.updateEventIntoCalendar(constants.EVENT_STATUS_TENTATIVE, event, comment)
   })
   buttonAccepted.appendTo(buttonList)
   buttonRemote.appendTo(buttonList)
   buttonDeclined.appendTo(buttonList)
-  buttonTentetive.appendTo(buttonList)
+  buttonTentative.appendTo(buttonList)
   eventTitle.appendTo(eventDetails)
   eventRes.appendTo(eventDetails)
   eventComment.appendTo(eventDetails)
   buttonList.appendTo(eventDetails)
 
   return eventDiv
-}
-
-main.goToCalendar_ = eventUrl => {
-  chrome.tabs.query(
-      {
-        url: [
-          constants.CALENDAR_UI_URL + '*/day*', constants.CALENDAR_UI_URL + '*/week*',
-          constants.CALENDAR_UI_URL + '*/month*', constants.CALENDAR_UI_URL + '*/year*',
-          constants.CALENDAR_UI_URL + '*/agenda*', constants.CALENDAR_UI_URL + '*/custom*'
-        ],
-        currentWindow: true
-      },
-      function(tabs) {
-        if (tabs.length > 0) {
-          chrome.tabs.update(tabs[0].id, {selected: true, url: eventUrl})
-        } else {
-          chrome.tabs.create({url: eventUrl})
-        }
-      })
-  return
 }
 
 window.addEventListener('load', () => {

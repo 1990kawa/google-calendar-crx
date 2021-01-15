@@ -11,13 +11,13 @@ background.BadgeProperties;
 background.log = function(message, opt_dump) {
 };
 
-background.initialize = function() {
+background.initialize = () => {
   background.initMomentJs_();
   background.listenForRequests_();
   scheduler.start();
 };
 
-background.initMomentJs_ = function() {
+background.initMomentJs_ = () => {
   moment.lang('relative-formatter', {
     relativeTime: {
       future: '%s',
@@ -39,8 +39,8 @@ background.initMomentJs_ = function() {
   });
 };
 
-background.listenForRequests_ = function() {
-  chrome.extension.onMessage.addListener(function(request, sender, opt_callback) {
+background.listenForRequests_ = () => {
+  chrome.extension.onMessage.addListener((request, sender, opt_callback) => {
     switch (request.method) {
       case 'events.feed.get':
         if (opt_callback) {
@@ -61,7 +61,7 @@ background.listenForRequests_ = function() {
   });
 };
 
-background.updateBadge = function(props) {
+background.updateBadge = props => {
   if ('text' in props) {
     chrome.browserAction.setBadgeText({'text': props.text});
   }
