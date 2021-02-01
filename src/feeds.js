@@ -9,10 +9,8 @@ feeds.events = [];
 feeds.nextEvents = [];
 feeds.lastFetchedAt = null;
 feeds.requestInteractiveAuthToken = () => {
-  background.log('feeds.requestInteractiveAuthToken()');
   chrome.identity.getAuthToken({'interactive': true}, function(accessToken) {
     if (chrome.runtime.lastError || !accessToken) {
-      background.log('getAuthToken', chrome.runtime.lastError.message);
       return;
     }
     feeds.refreshUI();
@@ -21,7 +19,6 @@ feeds.requestInteractiveAuthToken = () => {
 };
 
 feeds.fetchCalendars = () => {
-  background.log('feeds.fetchCalendars()');
   chrome.extension.sendMessage({method: 'sync-icon.spinning.start'});
 
   chrome.identity.getAuthToken({'interactive': false}, function(authToken) {
@@ -50,7 +47,6 @@ feeds.fetchCalendars = () => {
     })
     .catch(response => {
        chrome.extension.sendMessage({method: 'sync-icon.spinning.stop'});
-       background.log('Fetch Error (Calendars)', response.statusText);
        if (response.status === 401) {
          feeds.refreshUI();
          chrome.identity.removeCachedAuthToken({'token': authToken}, function() {});
@@ -60,13 +56,8 @@ feeds.fetchCalendars = () => {
 };
 
 feeds.fetchEvents = calendarId => {
-  background.log('feeds.fetchEvents()');
   chrome.extension.sendMessage({method: 'sync-icon.spinning.start'});
-
   feeds.lastFetchedAt = new Date();
-  background.updateBadge({'title': chrome.i18n.getMessage('fetching_feed')});
-
-
   let allEvents = [];
   feeds.fetchEventsFromCalendar(calendarId, function(events) {
     if (events) {
@@ -82,11 +73,8 @@ feeds.fetchEvents = calendarId => {
 };
 
 feeds.fetchEventsFromCalendar = (feed, callback) => {
-  background.log('feeds.fetchEventsFromCalendar()', feed.title);
-
   chrome.identity.getAuthToken({'interactive': false}, function(authToken) {
     if (chrome.runtime.lastError || !authToken) {
-      background.log('getAuthToken', chrome.runtime.lastError.message);
       chrome.extension.sendMessage({method: 'sync-icon.spinning.stop'});
       feeds.refreshUI();
       return;
@@ -124,7 +112,6 @@ feeds.fetchEventsRecursively = (calendarId, callback, authToken, days, fromDate)
       }
     }
 
-    background.log('Received events, now parsing.', calendarId);
     let events = [];
     items.forEach(eventEntry => {
       let start = utils.fromIso8601(eventEntry.start.dateTime || eventEntry.start.date);

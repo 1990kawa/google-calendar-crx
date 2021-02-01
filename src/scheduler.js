@@ -5,13 +5,9 @@ scheduler.EVENTS_INTERVAL = 60 * 60 * 1000;
 scheduler.REFRESH_INTERVAL = 60 * 1000;
 
 scheduler.start = () => {
-  chrome.extension.getBackgroundPage().background.log('scheduler.start()');
-
   feeds.fetchCalendars();
-
   window.setInterval(() => {
     feeds.refreshUI();
-
     let now = (new Date()).getTime();
     if (!feeds.lastFetchedAt) {
       feeds.fetchCalendars();

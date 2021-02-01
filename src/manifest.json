@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "__MSG_google_calendar_extension_name__",
   "description": "__MSG_google_calendar_extension_desc__",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "default_locale": "ja",
   "icons": {
     "16": "icons/logo_calendar_32.png",
@@ -13,7 +13,7 @@
     "identity"
   ],
   "oauth2": {
-    "client_id": "697357296747-9i4r7ude1k9n7moui8rs2ih4olbl61rm.apps.googleusercontent.com",
+    "client_id": "697357296747-s465spns83moii7sdd0nfmbtio2uggl8.apps.googleusercontent.com",
     "scopes": [
       "https://www.googleapis.com/auth/calendar"
     ]

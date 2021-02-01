@@ -1,15 +1,11 @@
 var background = {};
 
-background.logs_ = [];
 background.BADGE_COLORS = {
   ERROR: '#f00',
   IN_PROGRESS: '#efefef'
 };
 
 background.BadgeProperties;
-
-background.log = function(message, opt_dump) {
-};
 
 background.initialize = () => {
   background.initMomentJs_();

@@ -5,7 +5,6 @@ main.TOAST_FADE_OUT_DURATION_MS = 3000
 main.SHOW_EVENTS_DELAY_MS = 100
 
 main.init = () => {
-  chrome.extension.getBackgroundPage().background.log('main.init()')
   moment.lang('ja')
   main.installButtonClickHandlers()
   main.showLoginMessageIfNotAuthenticated()
@@ -27,7 +26,6 @@ main.installButtonClickHandlers = () => {
 main.showLoginMessageIfNotAuthenticated = () => {
   chrome.identity.getAuthToken({'interactive': false}, authToken => {
     if (chrome.runtime.lastError || !authToken) {
-      chrome.extension.getBackgroundPage().background.log('getAuthToken', chrome.runtime.lastError.message)
       main.stopSpinnerRightNow()
       $('#error').show()
       $('#action-bar').hide()
@@ -98,14 +96,12 @@ function showToast(parent, summary, linkUrl) {
 }
 
 main.updateEventIntoCalendar = (value, event, comment) => {
-  chrome.extension.getBackgroundPage().background.log('update.status', { status: value })
   main.startSpinner()
   let patchUrl = main.PATCH_API_URL_.replace('{calendarId}', encodeURIComponent(event.calendarId))
   patchUrl = patchUrl.replace('{eventId}', encodeURIComponent(event.event_id))
 
   chrome.identity.getAuthToken({'interactive': false}, authToken => {
     if (chrome.runtime.lastError || !authToken) {
-      chrome.extension.getBackgroundPage().background.log('getAuthToken', chrome.runtime.lastError.message)
       return
     }
 
@@ -138,8 +134,6 @@ main.updateEventIntoCalendar = (value, event, comment) => {
         window.setTimeout(function() {
           $('#info_bar').slideUp()
         }, constants.INFO_BAR_DISMISS_TIMEOUT_MS)
-        chrome.extension.getBackgroundPage().background.log(
-            'Error update event', response.statusText)
         if (response.status === 401) {
           chrome.identity.removeCachedAuthToken({'token': authToken}, function() {})
         }
@@ -148,14 +142,9 @@ main.updateEventIntoCalendar = (value, event, comment) => {
 }
 
 main.showEventsFromFeed_ = events => {
-
-  chrome.extension.getBackgroundPage().background.log('main.showEventsFromFeed_()')
   $('#calendar-events').empty()
-
   chrome.identity.getAuthToken({'interactive': false}, authToken => {
     if (chrome.runtime.lastError || !authToken) {
-      chrome.extension.getBackgroundPage().background.log(
-          'getAuthToken', chrome.runtime.lastError.message)
       $('#error').show()
       $('#action-bar').hide()
       $('#calendar-events').hide()
