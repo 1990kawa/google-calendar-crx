@@ -38,11 +38,11 @@ feeds.fetchCalendars = () => {
     })
     .then(response => {
       let calendarId
-      for (let i = 0; i < response.data.items.length; i++) {
-        let calendar = response.data.items[i];
-        if ( calendar.accessRole != 'writer' && calendar.accessRole != 'owner' ) { continue; }
+      response.data.items.forEach( calendar => {
+        if ( calendar.accessRole != 'writer' && calendar.accessRole != 'owner' ) { return }
+        if ( !!!calendar.primary ) { return }
         calendarId = calendar.id
-      }
+      })
       feeds.fetchEvents(calendarId);
     })
     .catch(response => {
