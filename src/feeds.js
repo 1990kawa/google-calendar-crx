@@ -9,7 +9,7 @@ feeds.events = [];
 feeds.nextEvents = [];
 feeds.lastFetchedAt = null;
 feeds.requestInteractiveAuthToken = () => {
-  chrome.identity.getAuthToken({'interactive': true}, function(accessToken) {
+  chrome.identity.getAuthToken({'interactive': false}, function(accessToken) {
     if (chrome.runtime.lastError || !accessToken) {
       return;
     }

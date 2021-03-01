@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "__MSG_google_calendar_extension_name__",
   "description": "__MSG_google_calendar_extension_desc__",
-  "version": "0.0.2",
+  "version": "0.0.5",
   "default_locale": "ja",
   "icons": {
     "16": "icons/logo_calendar_32.png",
@@ -13,9 +13,10 @@
     "identity"
   ],
   "oauth2": {
-    "client_id": "697357296747-s465spns83moii7sdd0nfmbtio2uggl8.apps.googleusercontent.com",
+    "client_id": "697357296747-m0uorojtnm6s7pqmfna5h3hslk7d8icd.apps.googleusercontent.com",
     "scopes": [
-      "https://www.googleapis.com/auth/calendar"
+      "https://www.googleapis.com/auth/calendar.events",
+      "https://www.googleapis.com/auth/calendar.readonly"
     ]
   },
   "content_security_policy": "script-src 'self' https://calendar.google.com; object-src 'self'",

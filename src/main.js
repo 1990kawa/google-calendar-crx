@@ -24,7 +24,7 @@ main.installButtonClickHandlers = () => {
 }
 
 main.showLoginMessageIfNotAuthenticated = () => {
-  chrome.identity.getAuthToken({'interactive': false}, authToken => {
+  chrome.identity.getAuthToken({'interactive': true}, authToken => {
     if (chrome.runtime.lastError || !authToken) {
       main.stopSpinnerRightNow()
       $('#error').show()
